@@ -1,18 +1,21 @@
-import React from 'react'
-import Banner from '../components/Banner/Banner'
-import CoinsTable from './../components/CoinsTable';
-
+import React from "react";
+import { Box, Container } from "@mui/material";
+import Banner from "../components/Banner/Banner";
+import MarketOverview from "../components/MarketOverview";
+import CoinsTable from "../components/CoinsTable";
 
 function Homepage() {
   return (
     <>
-         
-      <Banner/>
-      <CoinsTable />
+      <Banner />
+      <Container maxWidth="lg" sx={{ mt: 4 }}>
+        <MarketOverview />
+      </Container>
+      <Box sx={{ mt: 2 }}>
+        <CoinsTable />
+      </Box>
     </>
-      
-      
-    )
+  );
 }
 
-export default Homepage
+export default Homepage;

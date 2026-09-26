@@ -1,74 +1,60 @@
-import React from 'react'
-import { makeStyles } from '@material-ui/core';
-import { Line } from 'rc-progress';
-// import TrendingDownIcon from '@material-ui/icons/TrendingDown';
-// import TrendingUpIcon from '@material-ui/icons/TrendingUp';
+import React from "react";
+import { Box, Typography } from "@mui/material";
+import { Line } from "rc-progress";
+import { numberWithCommas } from "../utils/formatters";
 
+function BarLevel({ low, high, current, symbol }) {
+  const range = high - low;
+  const percent = range > 0 ? ((current - low) / range) * 100 : 50;
 
-function BarLevel() {
-    const useStyles=makeStyles(()=>({
-      container:{
-        
-          width:"100%",
-          display: "flex",
-          justifyContent: "space-around",
-          alignItems:"center",
-          marginBottom:20,
-
-      },
-        rangeText:{
-          fontFamily: "Montserrat",
-          color:"gold",
-          opacity:0.3 ,
-          fontWeight:500,
-        },
-        rangeValue:{
-          fontFamily: "Montserrat",
-          color:"gold",
-          fontWeight:"bolder",
-          fontSize:30,
-          // fontSize:50,
-        },
-
-        bar:{
-            width:"60%",
-            padding: 10,
-            borderRadius: 25,
-            borderRight:"2px solid grey",
-            border:"2px solid grey",
-
-          }
-    })
-        );
-    const classes=useStyles();
   return (
-    // <div
-    // className={classes.bar}
-    // >
-<div
-className={classes.container}
->
+    <Box
+      sx={{
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 2,
+        py: 2,
+      }}
+    >
+      <Box>
+        <Typography variant="caption" color="text.secondary" fontWeight={600}>
+          24H LOW
+        </Typography>
+        <Typography variant="h6" color="primary.main" fontWeight={700}>
+          {symbol} {numberWithCommas(low)}
+        </Typography>
+      </Box>
 
+      <Box sx={{ flex: 1, px: 1 }}>
+        <Line
+          percent={percent}
+          strokeWidth={6}
+          trailWidth={6}
+          trailColor="rgba(255,255,255,0.08)"
+          strokeColor="#EEBC1D"
+          style={{ borderRadius: 8 }}
+        />
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: "block", textAlign: "center", mt: 0.5 }}
+        >
+          Current position in 24h range
+        </Typography>
+      </Box>
 
-      <p>
-      <span className={classes.rangeText}>24 LOW</span><br></br> 
-        <span className={classes.rangeValue}>155</span>
-      </p>
-  
-
-
-     <Line className={classes.bar} percent={10} strokeWidth={4} trailWidth={4} trailColor="transparent" strokeColor=" #FFD700" />
-     <p>
-      <span className={classes.rangeText}>24 HIGH</span><br></br> 
-        <span className={classes.rangeValue}>155</span>
-      </p>  </div>
-    // </div>
-  )
+      <Box sx={{ textAlign: "right" }}>
+        <Typography variant="caption" color="text.secondary" fontWeight={600}>
+          24H HIGH
+        </Typography>
+        <Typography variant="h6" color="primary.main" fontWeight={700}>
+          {symbol} {numberWithCommas(high)}
+        </Typography>
+      </Box>
+    </Box>
+  );
 }
 
-export default BarLevel
-
-/////
- 
-
-
+export default BarLevel;

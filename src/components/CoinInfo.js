@@ -1,214 +1,169 @@
-import axios from 'axios';
-import React from 'react'
-import { useState, useEffect } from 'react';
-import { CryptoState } from '../CryptoContext';
-import { HistoricalChart } from './../config/api';
-import { createTheme, ThemeProvider, makeStyles, CircularProgress } from '@material-ui/core';
-import { Line } from 'react-chartjs-2';
+import api from "../api/client";
+import React, { memo, useMemo, useState } from "react";
+import { Box, Paper, Skeleton, Typography } from "@mui/material";
+import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
-  Title,
   Tooltip,
   Legend,
-} from 'chart.js'
-// import { Chart } from 'react-chartjs-2'
-import { chartDays } from './../config/data';
-import SelectButtons from './SelectButtons';
-import BarLevel from './BarLevel';
+  Filler,
+} from "chart.js";
+import { CryptoState } from "../CryptoContext";
+import { BinanceKlines } from "../config/api";
+import { chartDays } from "../config/data";
+import { useAbortableEffect } from "../hooks/useAbortable";
+import SelectButtons from "./SelectButtons";
+import BarLevel from "./BarLevel";
+import { numberWithCommas } from "../utils/formatters";
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
-  Title,
   Tooltip,
-  Legend
-)
+  Legend,
+  Filler
+);
 
-export const options = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-      title: {
-        display: true,
-        text: 'Chart.js Bar Chart',
-      },
-    },
-  };
+function CoinInfo({ coin }) {
+  const [historicData, setHistoricData] = useState(null);
+  const [days, setDays] = useState(1);
+  const [chartNote, setChartNote] = useState("");
+  const { symbol } = CryptoState();
 
-function CoinInfo({coin}) {
-    const [historicData, setHistoricData] = useState()
-    const [days, setDays] = useState(1)
+  useAbortableEffect((signal, isAlive) => {
+    const load = async () => {
+      setHistoricData(null);
+      setChartNote("");
+      try {
+        const { data } = await api.get(BinanceKlines(coin.symbol, days), {
+          signal,
+          silent: true,
+          cacheKey: `klines-${coin.symbol}-${days}`,
+          cacheTtl: 45000,
+        });
+        if (!isAlive()) return;
+        const scale = coin.usdPrice ? coin.current_price / coin.usdPrice : 1;
+        setHistoricData(data.map((point) => [point[0], Number(point[4]) * scale]));
+      } catch (error) {
+        if (!isAlive() || error.code === "ERR_CANCELED") return;
+        setHistoricData([]);
+        setChartNote("This pair is not listed on Binance, so the price chart is unavailable.");
+      }
+    };
+    load();
+  }, [coin.symbol, coin.usdPrice, coin.current_price, days]);
 
-    const {currency}=CryptoState()
-
-    const fetchHistoricData=async()=>{
-        const {data}=await axios.get(HistoricalChart(coin.id,days,currency))
-        // const {data}=await axios.get(HistoricalChart(coin.id,days,currency?currency:"INR"))
-
-        setHistoricData(data.prices)
-    }
-
-    useEffect(() => {
-      fetchHistoricData()
-    }, [currency,days])
-    
-    const darkTheme=createTheme({
-        palette:{
-            primary:{
-                main:"#fff",
-            },
-            type:"dark",
+  const chartData = useMemo(
+    () => ({
+      labels: (historicData || []).map((point) => {
+        const date = new Date(point[0]);
+        return days === 1
+          ? date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          : date.toLocaleDateString();
+      }),
+      datasets: [
+        {
+          data: (historicData || []).map((point) => point[1]),
+          label: "Price",
+          borderColor: "#EEBC1D",
+          backgroundColor: "rgba(238, 188, 29, 0.08)",
+          fill: true,
+          tension: 0.25,
+          pointRadius: 0,
+          pointHoverRadius: 3,
+          borderWidth: 2,
         },
-    })
-    
-    const useStyles = makeStyles((theme) => ({
-      container: {
-        width: "75%",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        // marginTop: 10,
+      ],
+    }),
+    [historicData, days]
+  );
 
-        padding: 40,
-        paddingTop:2,
-        paddingBottom:2,
-        [theme.breakpoints.down("md")]: {
-          // marginLeft:0 ,
-          width: "100%",
-          marginTop: 0,
-          padding: 20,
-          paddingTop: 0,
+  const chartOptions = useMemo(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 350 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${symbol} ${numberWithCommas(ctx.parsed.y)}`,
+          },
         },
       },
-    }));
+      scales: {
+        x: {
+          grid: { color: "rgba(255,255,255,0.04)" },
+          ticks: { maxTicksLimit: 6, color: "#8b949e" },
+        },
+        y: {
+          grid: { color: "rgba(255,255,255,0.04)" },
+          ticks: {
+            maxTicksLimit: 6,
+            color: "#8b949e",
+            callback: (val) => `${symbol}${numberWithCommas(val)}`,
+          },
+        },
+      },
+    }),
+    [symbol]
+  );
 
-    const classes=useStyles()
+  return (
+    <Box sx={{ flex: 1, p: { xs: 2, md: 4 } }}>
+      <Paper
+        elevation={0}
+        sx={{
+          p: 3,
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: "background.paper",
+        }}
+      >
+        <Typography variant="h5" fontWeight={700} gutterBottom>
+          Price Chart
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Historical price movement over selected timeframe
+        </Typography>
 
-    return (
-        <ThemeProvider theme={darkTheme}>
-            <div className={classes.container}>
-                {/* Chart */}
-                {
-                    !historicData ? (
-                        <CircularProgress
-                        style={{color:"gold"}}
-                        size={250}
-                        thickness={1}/>
-                       
-                        
-                    ):(
-                        
-                         <>
-                        {/* {console.log("yo", historicData.map(coin=>{console.log(coin)}))} */}
+        {!historicData ? (
+          <Skeleton variant="rounded" height={320} />
+        ) : (
+          <>
+            <Box sx={{ height: { xs: 280, md: 360 } }}>
+              {historicData.length ? (
+                <Line data={chartData} options={chartOptions} />
+              ) : (
+                <Typography color="text.secondary" sx={{ py: 8, textAlign: "center" }}>
+                  {chartNote || "No chart points returned for this range."}
+                </Typography>
+              )}
+            </Box>
 
-                        {/* {historicData.map(coin=>{
-                          let date=new Date(coin[0])
+            {coin.low_24h && coin.high_24h && coin.current_price && (
+              <BarLevel
+                low={coin.low_24h}
+                high={coin.high_24h}
+                current={coin.current_price}
+                symbol={symbol}
+              />
+            )}
 
-
-
-
-
-                          console.log(date.getHours())
-                            
-                            return`<h1>${coin[1]}</h1>`
-                            })} */}
-                           
-                            {/* <Line 
-                            data={{
-                                labels:historicData.map((coin)=>{
-
-                                    let date=new Date(coin[0]);
-                                    let time=date.getHours()>12?`${date.getHours()-12}`
-
-                                }),
-                            }}/> */}
-
-
-                            <Line
-                            width={600} height={250}
-              data={{
-                labels: historicData.map((coin) => {
-                  let date = new Date(coin[0]);
-                  let time =
-                    date.getHours() > 12
-                      ? `${date.getHours() - 12}:${date.getMinutes()} PM`
-                      : `${date.getHours()}:${date.getMinutes()} AM`;
-                  return days === 1 ? time : date.toLocaleDateString();
-                }),
-
-                datasets: [
-                  {
-                    data: historicData.map((coin) => coin[1]),
-                    label: `Price ( Past ${days} Days ) in ${currency}`,
-                    borderColor: "#EEBC1D",
-                  },
-                ],
-              }}
-              options={{
-                elements: {
-                  point: {
-                    radius: 1,
-                  },
-                },
-              }}
-            />
-            
-            <div
-            style={{
-              display:"flex",
-              marginTop:20,
-              
-              justifyContent:"space-around",
-              width:"100%",
-            }}
-            >
-            {/* <div style={{backgroundColor:"yellow", height:20,width:100}}></div> */}
-            <BarLevel/>
-            </div>
-            <div
-            style={{
-              display:"flex",
-              marginTop:20,
-              marginBottom:20,
-              justifyContent:"space-around",
-              width:"100%",
-            }}
-            >
-            
-
-            {chartDays.map(day=>(
-              <SelectButtons
-              key={day.value}
-              onClick={()=>setDays(day.value)}
-              selected={day.value===days}
-              >{day.label}</SelectButtons>
-            ))}
-            
-            </div>
-            <div>
-             <img src='https://wompampsupport.azureedge.net/fetchimage?siteId=7575&v=2&jpgQuality=100&width=700&url=https%3A%2F%2Fi.kym-cdn.com%2Fentries%2Ficons%2Fmobile%2F000%2F013%2F564%2Fdoge.jpg' />
-            </div>
-
-                        </>
-                    )
-                }
-
-
-                {/* Button */}
-            
-            </div>
-        </ThemeProvider>
-    
-    )
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+              <SelectButtons value={days} onChange={setDays} options={chartDays} />
+            </Box>
+          </>
+        )}
+      </Paper>
+    </Box>
+  );
 }
 
-export default CoinInfo
+export default memo(CoinInfo);

@@ -1,34 +1,39 @@
-import './App.css';
-import Homepage from './pages/Homepage';
-import React from 'react';
+import "./App.css";
+import React from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Box, ThemeProvider } from "@mui/material";
+import CssBaseline from "@mui/material/CssBaseline";
 
-import Header from './components/Header';
-import CoinPage from './pages/CoinPage';
-import { makeStyles } from '@material-ui/core';
-
-const useStyles = makeStyles(() => ({
-  App: {
-    backgroundColor: "#14161a",
-    color: "white",
-    minHeight: "100vh",
-  },
-}));
+import theme from "./theme/theme";
+import Header from "./components/Header";
+import Homepage from "./pages/Homepage";
+import CoinPage from "./pages/CoinPage";
+import BrandLoader from "./components/BrandLoader";
+import PageFade from "./components/PageFade";
 
 function App() {
-  const classes = useStyles();
-
   return (
-    <BrowserRouter>
-      <div className={classes.App}>
-        <Header />
-        <Routes>
-        <Route path="/" element={<Homepage/>} exact ></Route>
-        <Route path="/coins/:id" element={<CoinPage/>} ></Route>
-
-        </Routes>
-      </div>
-    </BrowserRouter>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <BrowserRouter>
+        <Box
+          sx={{
+            minHeight: "100vh",
+            bgcolor: "background.default",
+            color: "text.primary",
+          }}
+        >
+          <BrandLoader />
+          <Header />
+          <PageFade>
+            <Routes>
+              <Route path="/" element={<Homepage />} />
+              <Route path="/coins/:id" element={<CoinPage />} />
+            </Routes>
+          </PageFade>
+        </Box>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
 

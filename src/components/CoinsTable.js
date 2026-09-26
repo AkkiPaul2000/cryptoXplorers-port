@@ -1,196 +1,318 @@
-import axios from 'axios';
-import React from 'react'
-import {useState,useEffect} from "react";
-import { CryptoState } from '../CryptoContext';
-import { CoinList } from '../config/api';
-import { Container, createTheme, LinearProgress, Table, TableCell, TableContainer, TableHead, TableRow, TextField, ThemeProvider, Typography, Paper, TableBody, makeStyles } from '@material-ui/core';
-import { useNavigate } from 'react-router-dom';
-// import { useHistory } from 'react-router-dom';
+import React, { memo, useMemo, useState } from "react";
+import {
+  Alert,
+  Box,
+  Chip,
+  Container,
+  FormControl,
+  InputAdornment,
+  InputLabel,
+  MenuItem,
+  Pagination,
+  Paper,
+  Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+} from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import { useNavigate } from "react-router-dom";
+import { CryptoState } from "../CryptoContext";
+import { coinCategories } from "../config/data";
+import {
+  formatMarketCap,
+  formatPercent,
+  numberWithCommas,
+} from "../utils/formatters";
+import { listRiskScore, riskBand } from "../utils/risk";
+import CoinImage from "./CoinImage";
 
-import { Pagination } from '@material-ui/lab';
+const COLUMNS = [
+  { key: "market_cap_rank", label: "#", align: "right" },
+  { key: "name", label: "Coin", align: "left" },
+  { key: "current_price", label: "Price", align: "right" },
+  { key: "price_change_percentage_24h", label: "24h", align: "right" },
+  { key: "price_change_percentage_7d_in_currency", label: "7d", align: "right" },
+  { key: "total_volume", label: "Volume", align: "right" },
+  { key: "market_cap", label: "Market Cap", align: "right" },
+  { key: "risk", label: "Risk", align: "right" },
+];
 
-export function numberWithCommas(x) {
-    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  }
-  
 function CoinsTable() {
-  const [coins, setCoins] = useState([])
-    const [loading, setLoading] = useState(false)
-    const {currency,symbol}=CryptoState()
-    const [search, setSearch] = useState("")
-    const history = useNavigate();
-    //const [counter, setCounter] = useState(0)
-    const [page, setPage] = useState(1)
+  const { coins, symbol, category, setCategory, marketError } = CryptoState();
+  const [search, setSearch] = useState("");
+  const [move, setMove] = useState("all");
+  const [capBand, setCapBand] = useState("all");
+  const [volumeBand, setVolumeBand] = useState("all");
+  const [page, setPage] = useState(1);
+  const [sort, setSort] = useState({ key: "market_cap_rank", dir: "asc" });
+  const navigate = useNavigate();
 
-    const fetchCoins = async () => {
-        setLoading(true);
-        const { data } = await axios.get(CoinList(currency));
-        setCoins(data);
-        setLoading(false);
-      };
-    useEffect(() => {
-        fetchCoins();
-      }, [currency]);
-      console.log(coins)
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    const volumes = coins.map((coin) => coin.total_volume || 0).sort((a, b) => a - b);
+    const highVolume = volumes[Math.floor(volumes.length * 0.75)] || 0;
 
-    const darkTheme=createTheme({
-        palette:{
-            primary:{
-                main:"#fff",
-            },
-            type:"dark",
-        }
-    })
+    return coins
+      .filter((coin) => {
+        const matchesQuery =
+          !query ||
+          coin.name.toLowerCase().includes(query) ||
+          coin.symbol.toLowerCase().includes(query);
+        const change = coin.price_change_percentage_24h || 0;
+        const matchesMove =
+          move === "all" ||
+          (move === "gainers" && change > 0) ||
+          (move === "losers" && change < 0) ||
+          (move === "hot" && change >= 5) ||
+          (move === "cold" && change <= -5);
+        const rank = coin.market_cap_rank || 999;
+        const matchesCap =
+          capBand === "all" ||
+          (capBand === "large" && rank <= 20) ||
+          (capBand === "mid" && rank > 20 && rank <= 50) ||
+          (capBand === "small" && rank > 50);
+        const matchesVolume =
+          volumeBand === "all" ||
+          (volumeBand === "high" && coin.total_volume >= highVolume);
+        return matchesQuery && matchesMove && matchesCap && matchesVolume;
+      })
+      .sort((a, b) => {
+        const read = (coin) =>
+          sort.key === "risk" ? listRiskScore(coin) : coin[sort.key] ?? 0;
+        const left = sort.key === "name" ? a.name : read(a);
+        const right = sort.key === "name" ? b.name : read(b);
+        if (left < right) return sort.dir === "asc" ? -1 : 1;
+        if (left > right) return sort.dir === "asc" ? 1 : -1;
+        return 0;
+      });
+  }, [coins, search, move, capBand, volumeBand, sort]);
 
-    const handleSearch=()=>{
-        return coins.filter(
-            (coin)=>coin.name.toLowerCase().includes(search)||
-            coin.symbol.toLowerCase().includes(search)  
-        )
-    }
+  const pageSize = 12;
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const rows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-    const useStyles=makeStyles(()=>({
-        row:{
-            backgroundColor:"#16171a",
-            cursor: "pointer",
-            "&:hover":{
-                backgroundColor:"#131111",
-            },
-            fontFamily:"Montserrat",
-        },
-        pagination: {
-            "& .MuiPaginationItem-root": {
-              color: "gold",
-            },
-          },
-    }))
-    const classes=useStyles();
+  const toggleSort = (key) => {
+    setSort((current) =>
+      current.key === key
+        ? { key, dir: current.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: key === "name" ? "asc" : "desc" }
+    );
+  };
 
-    return (
-        <ThemeProvider theme={darkTheme}>
-            <Container style={{textAlign:"center"}}>
-                <Typography
-                variant="h4"
-                style={{margin:18,fontFamily:"Montserrat"}}>
-                    Cryptocurrency Prices by Market Cap
-                </Typography>
-                <TextField
-                label="Search For a Crypto Currency.."
-                variant="outlined"
-                style={{marginBottom:20,width:"100%"}}
-                onChange={(e)=>setSearch(e.target.value)}    
-                />
-                <TableContainer component={Paper}>
-                    {loading?(
-                        <LinearProgress style={{
-                            backgroundColor:"gold"
-                        }}/>
-                    ):(
-                        
-                            <Table aria-label="simple table">
-              <TableHead style={{ backgroundColor: "#EEBC1D" }}>
-                <TableRow>
-                  {["Coin", "Price", "24h Change", "Market Cap"].map((head) => (
-                    <TableCell
-                      style={{
-                        color: "black",
-                        fontWeight: "700",
-                        fontFamily: "Montserrat",
-                      }}
-                      key={head}
-                      align={head === "Coin" ? "" : "right"}
-                    >
-                      {head}
-                    </TableCell>
-                  ))}
+  return (
+    <Container maxWidth="lg" sx={{ pb: 6 }}>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" gutterBottom>
+          Coin Screener
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Filter by category, move, size, and volume. Click a column to sort.
+        </Typography>
+      </Box>
+
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", md: "1.4fr repeat(4, 1fr)" },
+          gap: 1.5,
+          mb: 2.5,
+        }}
+      >
+        <TextField
+          placeholder="Search name or symbol"
+          value={search}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setPage(1);
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon color="primary" />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <FormControl>
+          <InputLabel>Category</InputLabel>
+          <Select
+            label="Category"
+            value={category}
+            onChange={(event) => setCategory(event.target.value)}
+          >
+            {coinCategories.map((item) => (
+              <MenuItem key={item.value} value={item.value}>
+                {item.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl>
+          <InputLabel>24h move</InputLabel>
+          <Select
+            label="24h move"
+            value={move}
+            onChange={(event) => {
+              setMove(event.target.value);
+              setPage(1);
+            }}
+          >
+            <MenuItem value="all">All</MenuItem>
+            <MenuItem value="gainers">Gainers</MenuItem>
+            <MenuItem value="losers">Losers</MenuItem>
+            <MenuItem value="hot">+5% or more</MenuItem>
+            <MenuItem value="cold">-5% or more</MenuItem>
+          </Select>
+        </FormControl>
+        <FormControl>
+          <InputLabel>Market size</InputLabel>
+          <Select
+            label="Market size"
+            value={capBand}
+            onChange={(event) => {
+              setCapBand(event.target.value);
+              setPage(1);
+            }}
+          >
+            <MenuItem value="all">All caps</MenuItem>
+            <MenuItem value="large">Large · top 20</MenuItem>
+            <MenuItem value="mid">Mid · 21–50</MenuItem>
+            <MenuItem value="small">Smaller · 51+</MenuItem>
+          </Select>
+        </FormControl>
+        <FormControl>
+          <InputLabel>Volume</InputLabel>
+          <Select
+            label="Volume"
+            value={volumeBand}
+            onChange={(event) => {
+              setVolumeBand(event.target.value);
+              setPage(1);
+            }}
+          >
+            <MenuItem value="all">Any volume</MenuItem>
+            <MenuItem value="high">High volume</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
+
+      {marketError && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {marketError}
+        </Alert>
+      )}
+
+      <TableContainer
+        component={Paper}
+        elevation={0}
+        sx={{ border: "1px solid", borderColor: "divider", overflowX: "auto" }}
+      >
+        <Table size="small">
+          <TableHead>
+            <TableRow sx={{ bgcolor: "rgba(238, 188, 29, 0.12)" }}>
+              {COLUMNS.map((column) => (
+                <TableCell
+                  key={column.key}
+                  align={column.align}
+                  onClick={() => column.sortable !== false && toggleSort(column.key)}
+                  sx={{
+                    color: "primary.main",
+                    fontWeight: 700,
+                    cursor: column.sortable === false ? "default" : "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {column.label}
+                  {sort.key === column.key ? (sort.dir === "asc" ? " ↑" : " ↓") : ""}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {rows.map((row, index) => {
+              const profit = row.price_change_percentage_24h > 0;
+              const week = row.price_change_percentage_7d_in_currency;
+              const risk = listRiskScore(row);
+              const band = riskBand(risk);
+              return (
+                <TableRow
+                  key={row.id}
+                  hover
+                  className="row-in"
+                  onClick={() => navigate(`/coins/${row.id}`)}
+                  sx={{
+                    cursor: "pointer",
+                    animationDelay: `${index * 30}ms`,
+                    "&:hover": { bgcolor: "rgba(238, 188, 29, 0.06)" },
+                  }}
+                >
+                  <TableCell align="right">{row.market_cap_rank}</TableCell>
+                  <TableCell>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                      <CoinImage symbol={row.symbol} name={row.name} src={row.image} size={32} />
+                      <Box>
+                        <Typography fontWeight={700} textTransform="uppercase">
+                          {row.symbol}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {row.name}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </TableCell>
+                  <TableCell align="right">
+                    {symbol} {numberWithCommas(row.current_price)}
+                  </TableCell>
+                  <TableCell align="right" sx={{ color: profit ? "secondary.main" : "error.main" }}>
+                    {formatPercent(row.price_change_percentage_24h)}
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{ color: week >= 0 ? "secondary.main" : "error.main" }}
+                  >
+                    {formatPercent(week)}
+                  </TableCell>
+                  <TableCell align="right">{formatMarketCap(row.total_volume, symbol)}</TableCell>
+                  <TableCell align="right">{formatMarketCap(row.market_cap, symbol)}</TableCell>
+                  <TableCell align="right">
+                    <Chip
+                      size="small"
+                      label={`${band.label} ${risk}`}
+                      sx={{ fontWeight: 700 }}
+                    />
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {handleSearch()
-                  .slice((page - 1) * 10, (page - 1) * 10 + 10)
-                  .map((row) => {
-                    const profit = row.price_change_percentage_24h > 0;
-                    return (
-                      <TableRow
-                        className={classes.row}
-                        key={row.name}
-                        onClick={()=>history(`/coins/${row.id}`)}
-                      >
-                        <TableCell
-                          component="th"
-                          scope="row"
-                          style={{
-                            display: "flex",
-                            gap: 15,
-                          }}
-                        >
-                          <img
-                            src={row?.image}
-                            alt={row.name}
-                            height="50"
-                            style={{ marginBottom: 10 }}
-                          />
-                          <div
-                            style={{ display: "flex", flexDirection: "column" }}
-                          >
-                            <span
-                              style={{
-                                textTransform: "uppercase",
-                                fontSize: 22,
-                              }}
-                            >
-                              {row.symbol}
-                            </span>
-                            <span style={{ color: "darkgrey" }}>
-                              {row.name}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell align="right">
-                          {symbol}{" "}
-                          {numberWithCommas(row.current_price.toFixed(2))}
-                        </TableCell>
-                        <TableCell
-                          align="right"
-                          style={{
-                            color: profit > 0 ? "rgb(14, 203, 129)" : "red",
-                            fontWeight: 500,
-                          }}
-                        >
-                          {profit && "+"}
-                          {row.price_change_percentage_24h.toFixed(2)}%
-                        </TableCell>
-                        <TableCell align="right">
-                          {symbol}{" "}
-                          {numberWithCommas(
-                            row.market_cap.toString().slice(0, -6)
-                          )}
-                          M
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-              </TableBody>
-                        </Table>
-                    )}
-                </TableContainer>
-                <Pagination
-                    style={{
-                        padding:20,
-                        width: "100%",
-                        display: "flex",
-                        justifyContent:"center",
-                    }}
-                    classes={{ul:classes.pagination}}
-                    count={(handleSearch()?.length/10).toFixed(0)}
-                    onChange={(_,value)=>{
-                        setPage(value);
-                        window.scroll(0,450)
-                    }}
-                />
-            </Container>
-        </ThemeProvider>
-    )
+              );
+            })}
+            {!rows.length && !marketError && (
+              <TableRow>
+                <TableCell colSpan={COLUMNS.length} align="center" sx={{ py: 6 }}>
+                  No coins match these filters.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <Pagination
+        count={pageCount}
+        page={page}
+        color="primary"
+        onChange={(_, value) => {
+          setPage(value);
+          window.scrollTo({ top: 420, behavior: "smooth" });
+        }}
+        sx={{ mt: 3, display: "flex", justifyContent: "center" }}
+      />
+    </Container>
+  );
 }
 
-export default CoinsTable
+export default memo(CoinsTable);

@@ -1,11 +1,43 @@
-export const CoinList = (currency) =>
-  `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currency}&order=market_cap_desc&per_page=100&page=1&sparkline=false`;
+export const CoinList = (tag = "all") =>
+  tag && tag !== "all"
+    ? `/paprika/v1/tags/${tag}/tickers?quotes=USD,INR,EUR`
+    : `/paprika/v1/tickers?quotes=USD,INR,EUR`;
 
-export const SingleCoin = (id) =>
-  `https://api.coingecko.com/api/v3/coins/${id}`;
+export const SingleTicker = (id) =>
+  `/paprika/v1/tickers/${id}?quotes=USD,INR,EUR`;
 
-export const HistoricalChart = (id, days = 365, currency) =>
-  `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=${currency}&days=${days}`;
+export const CoinProfile = (id) => `/paprika/v1/coins/${id}`;
 
-export const TrendingCoins = (currency) =>
-  `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currency}&order=gecko_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h`;
+export const CoinMarkets = (id) => `/paprika/v1/coins/${id}/markets`;
+
+export const TodayOhlc = (id) => `/paprika/v1/coins/${id}/ohlcv/today`;
+
+export const GlobalData = () => `/paprika/v1/global`;
+
+export const FearGreed = () => `/sentiment/fng/?limit=1`;
+
+export const BitcoinStats = () => `/btc/stats`;
+
+export const chartRequest = (days) => {
+  if (days <= 1) return { interval: "15m", limit: 96 };
+  if (days <= 7) return { interval: "1h", limit: 168 };
+  if (days <= 30) return { interval: "4h", limit: 180 };
+  if (days <= 90) return { interval: "1d", limit: 90 };
+  return { interval: "1d", limit: 365 };
+};
+
+export const BinanceKlines = (symbol, days) => {
+  const { interval, limit } = chartRequest(days);
+  return `/binance/api/v3/klines?symbol=${symbol}USDT&interval=${interval}&limit=${limit}`;
+};
+
+export const BinanceDepth = (symbol) =>
+  `/binance/api/v3/depth?symbol=${symbol}USDT&limit=500`;
+
+export const CoinEvents = (id) => `/paprika/v1/coins/${id}/events`;
+
+export const CoinTwitter = (id) => `/paprika/v1/coins/${id}/twitter`;
+
+export const RssCoinTelegraph = () => "/rss/cointelegraph";
+
+export const RssCoinDesk = () => "/rss/coindesk";

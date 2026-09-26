@@ -1,31 +1,36 @@
-import React from 'react'
-import { makeStyles } from '@material-ui/core';
+import React from "react";
+import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 
-function SelectButtons({children,onClick,selected}) {
-  const useStyles=makeStyles({
-    selectbutton: {
-        border: "1px solid gold",
-        borderRadius: 5,
-        padding: 10,
-        paddingLeft: 20,
-        paddingRight: 20,
-        fontFamily: "Montserrat",
-        cursor: "pointer",
-        backgroundColor: selected ? "gold" : "",
-        color: selected ? "black" : "",
-        fontWeight: selected ? 700 : 500,
-        "&:hover": {
-          backgroundColor: "gold",
-          color: "black",
-        },
-        width: "22%",
-        //   margin: 5,
-      },
-  });
-  const classes=useStyles();
+function SelectButtons({ value, onChange, options }) {
   return (
-    <span onClick={onClick} className={classes.selectbutton}>{children}</span>
-  )
+    <ToggleButtonGroup
+      value={value}
+      exclusive
+      onChange={(_, newValue) => newValue && onChange(newValue)}
+      size="small"
+      sx={{
+        flexWrap: "wrap",
+        gap: 1,
+        "& .MuiToggleButton-root": {
+          border: "1px solid rgba(238, 188, 29, 0.3)",
+          color: "text.secondary",
+          px: 2,
+          "&.Mui-selected": {
+            bgcolor: "primary.main",
+            color: "#0b0e11",
+            fontWeight: 700,
+            "&:hover": { bgcolor: "primary.light" },
+          },
+        },
+      }}
+    >
+      {options.map((option) => (
+        <ToggleButton key={option.value} value={option.value}>
+          {option.label}
+        </ToggleButton>
+      ))}
+    </ToggleButtonGroup>
+  );
 }
 
-export default SelectButtons
+export default SelectButtons;
