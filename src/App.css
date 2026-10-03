@@ -470,14 +470,12 @@ kbd {
   }
 }
 
+/* Reduced motion drops scroll-driven movement only. Windows reports it whenever its animation effects
+   are off (and over Remote Desktop), so freezing every animation stopped the orbit, ticker and loaders
+   there; those loops are slow, small, and pause on hover. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+  html {
+    scroll-behavior: auto;
   }
 
   .reveal {
