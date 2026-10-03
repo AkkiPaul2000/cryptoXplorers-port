@@ -1,29 +1,31 @@
-export const CoinList = () => `/paprika/v1/tickers?quotes=USD,INR,EUR`;
+// These APIs send CORS headers, so the browser calls them directly. The RSS feeds don't: the dev server
+// proxies them (setupProxy.js) and the GitHub Pages workflow snapshots them into the build.
+export const CoinList = () => `https://api.coinpaprika.com/v1/tickers?quotes=USD,INR,EUR`;
 
 // CoinPaprika has no per-tag tickers endpoint; the tag itself lists its coin ids.
-export const TagCoins = (tag) => `/paprika/v1/tags/${tag}?additional_fields=coins`;
+export const TagCoins = (tag) => `https://api.coinpaprika.com/v1/tags/${tag}?additional_fields=coins`;
 
 export const SingleTicker = (id) =>
-  `/paprika/v1/tickers/${id}?quotes=USD,INR,EUR`;
+  `https://api.coinpaprika.com/v1/tickers/${id}?quotes=USD,INR,EUR`;
 
-export const CoinProfile = (id) => `/paprika/v1/coins/${id}`;
+export const CoinProfile = (id) => `https://api.coinpaprika.com/v1/coins/${id}`;
 
-export const CoinMarkets = (id) => `/paprika/v1/coins/${id}/markets`;
+export const CoinMarkets = (id) => `https://api.coinpaprika.com/v1/coins/${id}/markets`;
 
-export const TodayOhlc = (id) => `/paprika/v1/coins/${id}/ohlcv/today`;
+export const TodayOhlc = (id) => `https://api.coinpaprika.com/v1/coins/${id}/ohlcv/today`;
 
-export const GlobalData = () => `/paprika/v1/global`;
+export const GlobalData = () => `https://api.coinpaprika.com/v1/global`;
 
 // Free plan: hourly points for the last 24 hours only, daily points for up to a year.
 export const PaprikaHistory = (id, days) => {
-  if (days <= 1) return `/paprika/v1/tickers/${id}/historical?start=${Math.floor(Date.now() / 1000) - 86000}&interval=1h`;
+  if (days <= 1) return `https://api.coinpaprika.com/v1/tickers/${id}/historical?start=${Math.floor(Date.now() / 1000) - 86000}&interval=1h`;
   const start = new Date(Date.now() - Math.min(days, 364) * 86400000).toISOString().slice(0, 10);
-  return `/paprika/v1/tickers/${id}/historical?start=${start}&interval=1d`;
+  return `https://api.coinpaprika.com/v1/tickers/${id}/historical?start=${start}&interval=1d`;
 };
 
-export const FearGreed = (limit = 1) => `/sentiment/fng/?limit=${limit}`;
+export const FearGreed = (limit = 1) => `https://api.alternative.me/fng/?limit=${limit}`;
 
-export const BitcoinStats = () => `/btc/stats`;
+export const BitcoinStats = () => `https://api.blockchain.info/stats`;
 
 export const chartRequest = (days) => {
   if (days <= 1) return { interval: "15m", limit: 96 };
@@ -35,24 +37,24 @@ export const chartRequest = (days) => {
 };
 
 export const BinanceCandles = (symbol, interval, limit) =>
-  `/binance/api/v3/klines?symbol=${symbol}USDT&interval=${interval}&limit=${limit}`;
+  `https://data-api.binance.vision/api/v3/klines?symbol=${symbol}USDT&interval=${interval}&limit=${limit}`;
 
 export const BinanceKlines = (symbol, days) => {
   const { interval, limit } = chartRequest(days);
-  return `/binance/api/v3/klines?symbol=${symbol}USDT&interval=${interval}&limit=${limit}`;
+  return `https://data-api.binance.vision/api/v3/klines?symbol=${symbol}USDT&interval=${interval}&limit=${limit}`;
 };
 
 // startTime makes delisted pairs (e.g. XMR) come back empty instead of replaying their last week on Binance.
 export const BinanceSpark = (symbol) =>
-  `/binance/api/v3/klines?symbol=${symbol}USDT&interval=4h&limit=42&startTime=${Date.now() - 7 * 86400000}`;
+  `https://data-api.binance.vision/api/v3/klines?symbol=${symbol}USDT&interval=4h&limit=42&startTime=${Date.now() - 7 * 86400000}`;
 
 export const BinanceDepth = (symbol) =>
-  `/binance/api/v3/depth?symbol=${symbol}USDT&limit=500`;
+  `https://data-api.binance.vision/api/v3/depth?symbol=${symbol}USDT&limit=500`;
 
-export const CoinEvents = (id) => `/paprika/v1/coins/${id}/events`;
+export const CoinEvents = (id) => `https://api.coinpaprika.com/v1/coins/${id}/events`;
 
-export const CoinTwitter = (id) => `/paprika/v1/coins/${id}/twitter`;
+export const CoinTwitter = (id) => `https://api.coinpaprika.com/v1/coins/${id}/twitter`;
 
-export const RssCoinTelegraph = () => "/rss/cointelegraph";
+export const RssCoinTelegraph = () => `${process.env.PUBLIC_URL}/rss/cointelegraph`;
 
-export const RssCoinDesk = () => "/rss/coindesk";
+export const RssCoinDesk = () => `${process.env.PUBLIC_URL}/rss/coindesk`;

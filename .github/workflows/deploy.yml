@@ -1,0 +1,51 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *" # refreshes the news snapshot below
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - id: pages
+        uses: actions/configure-pages@v6
+      - run: npm ci
+      # base_path is /cryptoXplorers-port: assets, the router's basename and the RSS URLs live under it.
+      - run: npm run build
+        env:
+          PUBLIC_URL: ${{ steps.pages.outputs.base_path }}
+      # Pages has no SPA fallback; deep links get 404.html, so make that the app too.
+      - run: cp build/index.html build/404.html
+      # ponytail: news is a build-time snapshot (the feeds send no CORS headers and Pages can't proxy),
+      # refreshed hourly by the schedule. Needs to be live? Put a small serverless proxy in front of the feeds.
+      - name: Snapshot RSS feeds
+        run: |
+          mkdir -p build/rss
+          curl -sfL --retry 3 https://cointelegraph.com/rss -o build/rss/cointelegraph || echo "::warning::Cointelegraph feed unavailable"
+          curl -sfL --retry 3 https://www.coindesk.com/arc/outboundfeeds/rss -o build/rss/coindesk || echo "::warning::CoinDesk feed unavailable"
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: build
+      - id: deployment
+        uses: actions/deploy-pages@v5
