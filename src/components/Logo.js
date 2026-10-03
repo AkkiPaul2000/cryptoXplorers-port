@@ -1,13 +1,15 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
+import { goldGradient, tokens } from "../theme/theme";
 
-function Logo({ size = "md", showName = true }) {
-  const sizes = {
-    sm: { box: 28, font: 10, name: "subtitle2" },
-    md: { box: 34, font: 11, name: "h6" },
-    lg: { box: 44, font: 13, name: "h5" },
-  };
-  const s = sizes[size] || sizes.md;
+const SIZES = {
+  sm: { box: 30, font: 10, name: "subtitle1" },
+  md: { box: 36, font: 11, name: "h6" },
+  lg: { box: 88, font: 22, name: "h4" },
+};
+
+function Logo({ size = "md", showName = true, compact = false }) {
+  const s = SIZES[size] || SIZES.md;
 
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
@@ -15,15 +17,17 @@ function Logo({ size = "md", showName = true }) {
         sx={{
           width: s.box,
           height: s.box,
-          borderRadius: 1.5,
+          borderRadius: s.box > 60 ? "26px" : "11px",
           display: "grid",
           placeItems: "center",
-          bgcolor: "primary.main",
-          color: "#0b0e11",
-          fontWeight: 900,
+          background: goldGradient,
+          color: tokens.ink,
+          fontFamily: '"Space Grotesk", sans-serif',
+          fontWeight: 700,
           fontSize: s.font,
-          letterSpacing: "0.06em",
+          letterSpacing: "0.04em",
           flexShrink: 0,
+          boxShadow: `0 0 0 1px rgba(255,255,255,0.12) inset, 0 8px ${s.box / 2}px -6px rgba(238,188,29,0.55)`,
         }}
       >
         CRX
@@ -31,9 +35,17 @@ function Logo({ size = "md", showName = true }) {
       {showName && (
         <Typography
           variant={s.name}
-          sx={{ fontWeight: 800, color: "primary.main", letterSpacing: "-0.02em" }}
+          sx={{
+            display: { xs: compact ? "none" : "block", sm: "block" },
+            fontWeight: 700,
+            letterSpacing: "-0.02em",
+            whiteSpace: "nowrap",
+          }}
         >
-          CryptoXplorers
+          Crypto
+          <Box component="span" sx={{ color: "primary.main" }}>
+            Xplorers
+          </Box>
         </Typography>
       )}
     </Box>

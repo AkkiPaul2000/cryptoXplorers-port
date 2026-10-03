@@ -8,5 +8,5 @@ test("renders app header", () => {
       <App />
     </CryptoContext>
   );
-  expect(screen.getByText(/CryptoXplorers/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(/CryptoXplorers home/i)).toBeInTheDocument();
 });

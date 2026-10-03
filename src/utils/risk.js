@@ -1,10 +1,10 @@
 const BANDS = [
-  { max: 20, label: "Low", tone: "calm" },
-  { max: 35, label: "Moderately Low", tone: "steady" },
-  { max: 50, label: "Moderate", tone: "watch" },
-  { max: 65, label: "Moderately High", tone: "hot" },
-  { max: 80, label: "High", tone: "risk" },
-  { max: 100, label: "Very High", tone: "extreme" },
+  { max: 20, label: "Low", color: "#16C784" },
+  { max: 35, label: "Moderately Low", color: "#7DD3A8" },
+  { max: 50, label: "Moderate", color: "#EEBC1D" },
+  { max: 65, label: "Moderately High", color: "#F59E0B" },
+  { max: 80, label: "High", color: "#F97316" },
+  { max: 100, label: "Very High", color: "#F6465D" },
 ];
 
 export function riskBand(score) {

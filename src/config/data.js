@@ -4,6 +4,7 @@ export const chartDays = [
   { label: "30D", value: 30 },
   { label: "90D", value: 90 },
   { label: "1Y", value: 365 },
+  { label: "All", value: 3650 },
 ];
 
 export const coinCategories = [
@@ -14,3 +15,6 @@ export const coinCategories = [
   { label: "AI", value: "artificial-intelligence" },
   { label: "Stablecoins", value: "stablecoin" },
 ];
+
+// ponytail: watchlist UI hidden until there are accounts to sync it to; flip to true to bring it back.
+export const showWatchlist = false;

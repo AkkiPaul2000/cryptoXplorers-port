@@ -29,6 +29,9 @@ function bump(delta) {
   }
 }
 
+// CoinPaprika's keyless plan answers 402 once its 60-requests-an-hour budget is spent.
+export const isRateLimited = (error) => [402, 429].includes(error?.response?.status);
+
 export function subscribeLoading(listener) {
   listeners.add(listener);
   listener(visible, pending);
@@ -42,7 +45,7 @@ api.interceptors.request.use((config) => {
     return Promise.reject(new axios.CanceledError("aborted"));
   }
 
-  if (config.method === "get" && config.cacheKey) {
+  if (config.method === "get" && config.cacheKey && !config.fresh) {
     const cached = readCache(config.cacheKey);
     if (cached) {
       config.adapter = () =>
